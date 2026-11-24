@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O2O 红包核销看板</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo">红</div>
+      <div>
+        <div class="brand-name">O2O 红包核销</div>
+        <div class="brand-sub">核对看板</div>
+      </div>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-tab="overview"><span>概览</span></button>
+      <button class="nav-item" data-tab="import"><span>数据导入</span></button>
+      <button class="nav-item" data-tab="data"><span>数据明细</span></button>
+      <button class="nav-item" data-tab="checks"><span>核销结果</span></button>
+      <button class="nav-item" data-tab="rules"><span>核对口径</span></button>
+    </nav>
+    <div class="side-foot">
+      <div class="muted" id="sideDb">我的库：—</div>
+      <div class="muted" id="sideRun">批次 —</div>
+      <div class="muted" id="sideSpan">—</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h1 id="pageTitle">概览</h1>
+        <div class="sub" id="pageSub">先导入底表，再跑核对，异常逐条处理</div>
+      </div>
+      <div class="top-actions">
+        <button class="btn ghost" id="btnExportTop">导出当前结果</button>
+        <button class="btn" id="btnRecheck">重跑核对</button>
+      </div>
+    </header>
+
+    <!-- 概览 -->
+    <section class="pane" id="pane-overview">
+      <div class="kpis" id="kpis"></div>
+      <div class="card">
+        <div class="card-head">
+          <h2>四项核对结果</h2>
+          <span class="muted" id="overviewSpan">—</span>
+        </div>
+        <table class="table" id="summaryTable">
+          <thead>
+            <tr><th>核对项</th><th class="num">项数</th><th class="num">合规</th>
+                <th class="num">异常</th><th class="num">预警</th><th class="num">差异合计</th><th></th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>异常清单（FAIL）</h2><span class="muted">按月份倒序，最多 30 条</span></div>
+        <table class="table" id="failTable">
+          <thead><tr><th>月份</th><th>门店</th><th>型号</th><th>核对项</th>
+                     <th class="num">实际</th><th class="num">标准</th><th class="num">差异</th><th>说明</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 导入 -->
+    <section class="pane hidden" id="pane-import">
+      <div class="card">
+        <div class="card-head"><h2>上传底表（写进我自己的库）</h2><span class="muted">支持 .xlsx，一个文件可含多张工作表；数据只落本机，不上传</span></div>
+        <div class="drop" id="drop">
+          <div class="drop-inner">
+            <div class="drop-title">把 Excel 拖到这里，或点此选择文件</div>
+            <div class="drop-hint">
+              表名含「下单」→ 下单明细；「发放 / 台账」→ 红包发放；「政策 / 标准」→ 红包政策；「期初 / 累计」→ 期初累计<br>
+              每人一套自己的库：先跑 python scripts/init_person.py --name 你的名字，再导入自己的底表，互不影响
+            </div>
+          </div>
+          <input type="file" id="fileInput" accept=".xlsx,.xlsm" multiple hidden>
+        </div>
+        <div class="import-result hidden" id="importResult"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>底表格式要求</h2><span class="muted">列名不必一字不差，按下表关键词识别</span></div>
+        <table class="table">
+          <thead><tr><th>工作表</th><th>必需列</th><th>可选列</th></tr></thead>
+          <tbody>
+            <tr><td>下单明细</td><td>门店名称 / 型号 / 月份 / 数量</td><td>渠道、门店编码、下单金额</td></tr>
+            <tr><td>红包发放</td><td>门店名称 / 型号 / 月份 / 数量 / 单台金额</td><td>红包类型、渠道、门店编码、红包金额、累计数量</td></tr>
+            <tr><td>红包政策</td><td>型号 / 生效起始月 / 下单标准 / 零售标准</td><td>渠道、政策文号</td></tr>
+            <tr><td>期初累计</td><td>基准月 / 门店名称 / 型号 / 累计下单数量</td><td>渠道、门店编码、前期零售红包数量、累计下单红包数量</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 数据明细 -->
+    <section class="pane hidden" id="pane-data">
+      <div class="card">
+        <div class="card-head">
+          <div class="subtabs" id="moduleTabs"></div>
+          <div class="filters">
+            <input class="input" id="dSearch" placeholder="搜索门店 / 型号">
+            <select class="input" id="dPeriod"><option value="">全部月份</option></select>
+            <select class="input" id="dChannel"><option value="">全部渠道</option></select>
+            <button class="btn ghost" id="btnDExport">导出</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table class="table" id="moduleTable"></table></div>
+        <div class="pager" id="dPager"></div>
+      </div>
+    </section>
+
+    <!-- 核销结果 -->
+    <section class="pane hidden" id="pane-checks">
+      <div class="card">
+        <div class="card-head">
+          <div class="subtabs" id="checkTabs">
+            <button class="subtab active" data-check="C1">政策核销</button>
+            <button class="subtab" data-check="C2">下单红包</button>
+            <button class="subtab" data-check="C3">零售累计</button>
+            <button class="subtab" data-check="C0">数据检查</button>
+          </div>
+          <div class="filters">
+            <input class="input" id="cSearch" placeholder="搜索门店 / 型号 / 说明">
+            <select class="input" id="cStatus">
+              <option value="">全部状态</option><option value="FAIL">异常</option>
+              <option value="WARN">预警</option><option value="PASS">合规</option>
+            </select>
+            <select class="input" id="cPeriod"><option value="">全部月份</option></select>
+            <select class="input" id="cChannel"><option value="">全部渠道</option></select>
+            <button class="btn ghost" id="btnCExport">导出本表</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table class="table" id="checkTable"></table></div>
+        <div class="pager" id="cPager"></div>
+      </div>
+    </section>
+
+    <!-- 口径 -->
+    <section class="pane hidden" id="pane-rules">
+      <div class="card">
+        <div class="card-head"><h2>核对口径</h2><span class="muted">改口径请改 config/settings.json</span></div>
+        <table class="table">
+          <thead><tr><th style="width:160px">项目</th><th>规则</th></tr></thead>
+          <tbody>
+            <tr><td>核对项</td><td>① 政策核销：实发单台金额 vs 当月政策标准；② 下单红包核销：门店当月下单红包发放数量 vs 当月净下单数量；③ 零售红包核销：期初累计 + 累计零售发放 vs 累计下单；④ 数据检查：政策缺口、缺下单、缺期初</td></tr>
+            <tr><td>判定起始月</td><td id="ruleJudge">—</td></tr>
+            <tr><td>期初基准月</td><td id="ruleBase">—</td></tr>
+            <tr><td>状态含义</td><td>合规 PASS：在标准内；异常 FAIL：超标准、超发、无政策；预警 WARN：数据不完备，需补数据后复核</td></tr>
+            <tr><td>数量口径</td><td>退货为负，取净数量；型号不区分大小写与空格；红包类型混写（如"下单红包+零售红包"）两类分别计入</td></tr>
+            <tr><td>政策口径</td><td>每月一份完整快照，只对当月生效；当月无政策先判异常并注明缺口</td></tr>
+            <tr><td>重复导入</td><td>同"月份+门店+型号+红包类型"覆盖旧值，不重复累加</td></tr>
+            <tr><td>报告</td><td>data/out/红包核对报告_&lt;批次&gt;_&lt;时间&gt;.xlsx，并同步更新"最新核对报告.xlsx"</td></tr>
+            <tr><td>数据归属</td><td>每人一套 SQLite 库，默认 data/redpacket.db；自己的库用 --db 或 REDPACKET_DB 指定，例如 data/persons/张三/redpacket.db。数据不集中、不互相覆盖</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast hidden" id="toast"></div>
+<script src="./app.js"></script>
+</body>
+</html>

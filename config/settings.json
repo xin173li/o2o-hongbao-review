@@ -1,0 +1,23 @@
+{
+  "paths": {
+    "db": "data/redpacket.db",
+    "inbox": "data/inbox",
+    "archive": "data/archive",
+    "out": "data/out",
+    "web": "web"
+  },
+  "audit": {
+    "baseline_period": "2025-12",
+    "judge_from_period": "2026-01",
+    "amount_tolerance": 0.5,
+    "qty_tolerance": 0.0001
+  },
+  "import": {
+    "archive_after_import": true
+  },
+  "source_rules": {
+    "policy_validity": "month",
+    "model_ignore_case_and_space": true,
+    "mixed_type_within_row": true
+  }
+}

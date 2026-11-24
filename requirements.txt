@@ -1,0 +1,5 @@
+# O2O 红包核销系统 —— 第三方依赖清单
+# 系统其余模块全部使用 Python 标准库（sqlite3 / http.server / zipfile / hashlib 等），无需额外安装
+# 环境：Python 3.10 及以上；不需要安装任何数据库服务，SQLite 随 Python 自带
+
+openpyxl>=3.1.0,<4.0

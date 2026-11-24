@@ -1,0 +1,139 @@
+# ============================================
+# O2O 红包核销系统 —— 禁止入库清单
+# 原则：凭据、真实业务数据、个人库、运行产物，一律不入库
+# ============================================
+
+# ---------- 1. 凭据 / 密钥 / 个人机器配置 ----------
+.env
+.env.*
+!.env.example
+*.token
+*token*.txt
+*secret*
+*credential*
+config_local.*
+config.local.*
+config/*.local.json
+config/*.bak
+# 记录"我的库在哪"的个人路径文件，每人不同，不能共用更不能上传
+config/my_db.txt
+secrets/
+*.pem
+*.key
+*.p12
+
+# ---------- 2. SQLite 数据库（含 WAL / 日志）---------
+# 注意：只写 data/ 不够，--db 可以把库指到仓库里任何位置
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite-*
+
+# ---------- 3. 真实业务数据 ----------
+# 下单明细 / 红包发放 / 政策 / 期初累计，任何格式都不上传
+*.xlsx
+*.xls
+*.xlsm
+*.xlsb
+*.csv
+*.tsv
+*.docx
+*.doc
+*.pdf
+*.zip
+*.rar
+*.7z
+# 图片（小票 / 转账截图 / 扫描件）
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.gif
+*.tif
+*.tiff
+*.webp
+*.heic
+# 数据相关目录（个人库、待导入、归档、报告）
+data/
+数据/
+原始数据/
+底表/
+input/
+inputs/
+inbox/
+archive/
+门店数据/
+客户数据/
+output/
+outputs/
+out/
+结果/
+报告/
+review_result*/
+logs/
+日志/
+
+# ---------- 4. 运行产物 ----------
+*.log
+*.tmp
+*.temp
+*.pid
+*.sock
+nohup.out
+~$*
+*.bak
+*~
+._*
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- 5. Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+develop-eggs/
+.eggs/
+.venv/
+venv/
+env/
+ENV/
+.python-version
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.coverage
+.coverage.*
+htmlcov/
+*.orig
+*.rej
+pip-wheel-metadata/
+
+# ---------- 6. 编辑器 / AI IDE / 系统 ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+.trae/
+.cursor/
+.windsurf/
+.claude/
+
+# ---------- 7. 允许入库：脱敏样例与空模板（白名单）---------
+# 仅限伪造的样例数据、不含任何真实门店/客户/金额的空模板
+!samples/样例*.xlsx
+!samples/底表模板*.xlsx
+!samples/*.md
+!templates/*_模板.xlsx
+
+# 说明：真实业务表一律按上面的扩展名规则拦截；即使误放进 samples/ 或 templates/，
+# 只要文件名不符合白名单（样例* / 底表模板* / *_模板.xlsx），仍会被 *.xlsx 挡住。
