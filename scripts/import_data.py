@@ -396,10 +396,17 @@ def import_dir(dir_path: Path | None = None) -> list[dict]:
     return results
 
 
+def safe_filename(name: str) -> str:
+    """上传文件名清洗：只保留文件名部分，防止 ../ 与绝对路径写到 inbox 之外。"""
+    s = Path(name).name
+    return s if s not in ("", ".", "..") else ""
+
+
 def import_bytes(data: bytes, filename: str) -> dict:
     """供网页上传使用：先落盘到 inbox，再走同一套导入逻辑。"""
     inbox = path_of("inbox")
-    target = inbox / filename
+    name = safe_filename(filename) or f"上传_{datetime.now():%Y%m%d%H%M%S}.xlsx"
+    target = inbox / name
     target.write_bytes(data)
     conn = connect()
     ensure_schema(conn)
