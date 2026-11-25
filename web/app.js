@@ -36,6 +36,9 @@ const fmt = (v, digits = 2) => {
 };
 const typeText = t => ({ retail: '零售红包', order: '下单红包' }[t] || (t || '—'));
 const statusText = s => ({ PASS: '合规', FAIL: '异常', WARN: '预警' }[s] || s);
+/* Excel 来的内容（门店名/型号/错误信息等）渲染前一律转义，防底表注入 */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ---------- 导航 ---------- */
 $$('.nav-item').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
@@ -113,19 +116,19 @@ async function loadOverview() {
   try {
     fails = await api('/api/results?status=FAIL&size=30&page=1');
   } catch (err) {
-    $('#failTable tbody').innerHTML = `<tr><td colspan="8" class="empty">加载异常清单失败：${err.message}</td></tr>`;
+    $('#failTable tbody').innerHTML = `<tr><td colspan="8" class="empty">加载异常清单失败：${esc(err.message)}</td></tr>`;
     return;
   }
   $('#failTable tbody').innerHTML = fails.rows.length ? fails.rows.map(r => `
     <tr>
-      <td>${r.period || '—'}</td>
-      <td>${r.store_name || '—'}</td>
-      <td>${r.model_code || '—'}</td>
-      <td>${r.left_label ? r.left_label.replace(/（.*）/, '') : typeText(r.red_type)}</td>
+      <td>${esc(r.period) || '—'}</td>
+      <td>${esc(r.store_name) || '—'}</td>
+      <td>${esc(r.model_code) || '—'}</td>
+      <td>${esc(r.left_label ? r.left_label.replace(/（.*）/, '') : typeText(r.red_type)) || '—'}</td>
       <td class="num">${fmt(r.left_value)}</td>
       <td class="num">${fmt(r.right_value)}</td>
       <td class="num diff-fail">${r.diff === null ? '—' : fmt(r.diff)}</td>
-      <td>${r.note || '—'}</td>
+      <td>${esc(r.note) || '—'}</td>
     </tr>`).join('') : '<tr><td colspan="8" class="empty">没有异常，全部合规</td></tr>';
 }
 
@@ -134,7 +137,11 @@ async function loadDims() {
   if (state.dims) return state.dims;
   state.dims = await api('/api/dims');
   const opts = (arr, val = 'value', text = 'label') =>
-    arr.map(x => `<option value="${typeof x === 'string' ? x : x[val]}">${typeof x === 'string' ? x : x[text]}</option>`).join('');
+    arr.map(x => {
+      const v = typeof x === 'string' ? x : x[val];
+      const t = typeof x === 'string' ? x : x[text];
+      return `<option value="${esc(v)}">${esc(t)}</option>`;
+    }).join('');
 
   $('#dPeriod').innerHTML = '<option value="">全部月份</option>' + opts(state.dims.periods);
   $('#cPeriod').innerHTML = '<option value="">全部月份</option>' + opts(state.dims.periods);
@@ -167,7 +174,7 @@ async function loadModule() {
       const v = r[c.key];
       const cls = /qty|amount|value/.test(c.key) ? 'num' : '';
       const text = c.key === 'red_type' ? typeText(v) : (typeof v === 'number' ? fmt(v) : (v ?? '—'));
-      return `<td class="${cls}">${text}</td>`;
+      return `<td class="${cls}">${esc(text)}</td>`;
     }).join('')}</tr>`).join('') : `<tr><td colspan="${data.columns.length}" class="empty">没有数据</td></tr>`}</tbody>`;
 
   renderPager($('#dPager'), data, q => { Object.assign(state.moduleQuery, q); loadModule(); });
@@ -196,20 +203,20 @@ async function loadChecks() {
   const table = $('#checkTable');
   table.innerHTML = `
     <thead><tr><th>月份</th><th>渠道</th><th>门店</th><th>型号</th><th>类型</th>
-      <th class="num">${data.left_label}</th><th class="num">${data.right_label}</th>
+      <th class="num">${esc(data.left_label)}</th><th class="num">${esc(data.right_label)}</th>
       <th class="num">差异</th><th>状态</th><th>说明</th></tr></thead>
     <tbody>${data.rows.length ? data.rows.map(r => `
       <tr>
-        <td>${r.period || '—'}</td>
-        <td>${r.channel_code || '—'}</td>
-        <td>${r.store_name || '—'}</td>
-        <td>${r.model_code || '—'}</td>
-        <td>${typeText(r.red_type)}</td>
+        <td>${esc(r.period) || '—'}</td>
+        <td>${esc(r.channel_code) || '—'}</td>
+        <td>${esc(r.store_name) || '—'}</td>
+        <td>${esc(r.model_code) || '—'}</td>
+        <td>${esc(typeText(r.red_type))}</td>
         <td class="num">${fmt(r.left_value)}</td>
         <td class="num">${fmt(r.right_value)}</td>
         <td class="num ${r.status === 'FAIL' ? 'diff-fail' : ''}">${r.diff === null ? '—' : fmt(r.diff)}</td>
         <td><span class="badge ${r.status}">${statusText(r.status)}</span></td>
-        <td>${r.note || ''}</td>
+        <td>${esc(r.note)}</td>
       </tr>`).join('') : '<tr><td colspan="10" class="empty">没有记录</td></tr>'}</tbody>`;
   renderPager($('#cPager'), data, q => { Object.assign(state.checkQuery, q); loadChecks(); });
 }
@@ -314,13 +321,13 @@ function showImportResult(name, data) {
   const box = $('#importResult');
   box.classList.remove('hidden');
   if (data.error) {
-    box.innerHTML = `<div class="ir-head">${name}</div><div class="ir-body err">导入失败：${data.error}</div>`;
+    box.innerHTML = `<div class="ir-head">${esc(name)}</div><div class="ir-body err">导入失败：${esc(data.error)}</div>`;
     return;
   }
   const rows = (data.sheets || []).map(s => `
-    <div>${s.sheet}（${s.type}）：写入 ${s.written} 行，失败 ${s.failed} 行
-    ${s.errors && s.errors.length ? `<div class="err">${s.errors.join('<br>')}</div>` : ''}</div>`).join('');
-  box.innerHTML = `<div class="ir-head">${name} · 批次 #${data.batch_id}</div>
+    <div>${esc(s.sheet)}（${esc(s.type)}）：写入 ${s.written} 行，失败 ${s.failed} 行
+    ${s.errors && s.errors.length ? `<div class="err">${s.errors.map(esc).join('<br>')}</div>` : ''}</div>`).join('');
+  box.innerHTML = `<div class="ir-head">${esc(name)} · 批次 #${data.batch_id}</div>
     <div class="ir-body">共写入 ${data.written} 行，失败 ${data.failed} 行<div style="margin-top:6px">${rows}</div></div>`;
 }
 
